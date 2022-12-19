@@ -8,11 +8,18 @@ on:
   push:
     branches:
       - main
+      - dev
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ENV: ghci
+      DBHOST: text
+      BDUSER: text
+      DBPASS: text
+      DBNAME: text
 
     steps:
       - uses: actions/checkout@v2
@@ -28,7 +35,10 @@ jobs:
           source venv/bin/activate
       
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run:
+          pip install -r requirements.txt
+          python -m pip install --upgrade pip
+          pip install flake8 pytest
         
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
       
@@ -40,7 +50,8 @@ jobs:
             . 
             !venv/
 
-  deploy:
+  deploy-prod:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: build
     environment:
@@ -61,3 +72,26 @@ jobs:
           app-name: 'agalvez-assignment-app-prod-be'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_2169B0BF2763404F8184A986B322C85C }}
+
+  deploy-dev:
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'Development'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v2
+        with:
+          name: python-app
+          path: .
+          
+      - name: 'Deploy to Azure Web App'
+        uses: azure/webapps-deploy@v2
+        id: deploy-to-webapp
+        with:
+          app-name: 'agalvez-assignment-app-dev-be'
+          slot-name: 'Production'
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_11309CAD142F431CBE8493DB8B199BFD }}
