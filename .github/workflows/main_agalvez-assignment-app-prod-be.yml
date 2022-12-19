@@ -36,9 +36,13 @@ jobs:
       
       - name: Install dependencies
         run:
-          pip install -r requirements.txt
           python -m pip install --upgrade pip
           pip install flake8 pytest
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Pytest
+        run: |
+        python -m pytest --cov=backend_api -v
         
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
       
